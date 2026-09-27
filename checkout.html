@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Pagar pedido | DigitalRO</title>
+
+    <link rel="stylesheet" href="politica-privacidad.css">
+    <link rel="stylesheet" href="tienda.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-container">
+
+            <a href="index.html" class="logo">
+                <img src="Imagenes/logo.png" alt="DigitalRO" class="logo-img">
+                Digital<span>RO</span>
+            </a>
+
+            <nav class="nav">
+                <a href="index.html">Inicio</a>
+            </nav>
+
+        </div>
+    </header>
+
+    <main class="container">
+
+        <div class="section-heading" style="border:none; margin-bottom: 25px;">
+            <h2>Finalizar compra</h2>
+            <span>Revisa tu pedido y paga de forma segura con MercadoPago</span>
+        </div>
+
+        <div id="formError" class="form-error"></div>
+
+        <div class="checkout-grid">
+
+            <form class="checkout-form" id="checkoutForm">
+                <h2>Datos de contacto</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Nombre</label>
+                        <input type="text" id="firstName" name="firstName" required autocomplete="given-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Apellido</label>
+                        <input type="text" id="lastName" name="lastName" required autocomplete="family-name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" required autocomplete="email">
+                </div>
+                <p class="form-note">Tus claves y accesos se enviarán a este correo apenas se confirme el pago.</p>
+
+                <div class="form-group">
+                    <label for="phone">Teléfono (opcional)</label>
+                    <input type="tel" id="phone" name="phone" autocomplete="tel">
+                </div>
+
+                <button type="submit" class="checkout-btn" id="payBtn">Continuar con el pago</button>
+            </form>
+
+            <aside class="order-summary">
+                <h2>Tu pedido</h2>
+                <div id="summaryItems"></div>
+                <div class="summary-total">
+                    <span>Total</span>
+                    <span id="summaryTotal">S/ 0.00</span>
+                </div>
+                <p class="pay-provider-note">🔒 Pago procesado de forma segura por MercadoPago. DigitalRO no almacena datos de tarjetas.</p>
+            </aside>
+
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <h3>🎮 DigitalRO</h3>
+                <p>Tu tienda de videojuegos y productos digitales.</p>
+            </div>
+            <div class="footer-links">
+                <a href="condiciones-servicio.html">Condiciones del servicio</a>
+                <a href="politica-privacidad.html">Política de privacidad</a>
+            </div>
+        </div>
+        <div class="copyright">
+            © 2026 DigitalRO — Proyecto académico
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+    <script src="js/checkout.js"></script>
+</body>
+</html>

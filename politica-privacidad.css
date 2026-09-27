@@ -48,6 +48,9 @@ body {
     text-decoration: none;
     font-size: 24px;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .logo span {
@@ -56,6 +59,13 @@ body {
 
 .logo-icon {
     margin-right: 5px;
+}
+
+.logo-img {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+    border-radius: 6px;
 }
 
 .nav {

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago rechazado | DigitalRO</title>
+    <link rel="stylesheet" href="politica-privacidad.css">
+    <link rel="stylesheet" href="tienda.css">
+</head>
+<body data-result="failure">
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <img src="Imagenes/logo.png" alt="DigitalRO" class="logo-img">
+                Digital<span>RO</span>
+            </a>
+            <nav class="nav"><a href="index.html">Inicio</a></nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="result-card">
+            <div class="result-icon">❌</div>
+            <h1>El pago no se pudo completar</h1>
+            <p>MercadoPago rechazó o canceló la operación. Tu carrito sigue disponible, puedes intentarlo nuevamente.</p>
+            <p id="paymentStatus"></p>
+            <a href="checkout.html">Volver al pago</a>
+        </div>
+    </main>
+
+    <script src="js/cart.js"></script>
+    <script src="js/result.js"></script>
+</body>
+</html>

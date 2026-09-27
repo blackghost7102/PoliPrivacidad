@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Producto | DigitalRO</title>
+
+    <link rel="stylesheet" href="politica-privacidad.css">
+    <link rel="stylesheet" href="tienda.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-container">
+
+            <a href="index.html" class="logo">
+                <img src="Imagenes/logo.png" alt="DigitalRO" class="logo-img">
+                Digital<span>RO</span>
+            </a>
+
+            <nav class="nav">
+                <a href="index.html">Inicio</a>
+                <a href="index.html#juegos">Videojuegos</a>
+                <a href="index.html#software">Claves digitales</a>
+                <a href="index.html#suscripciones">Suscripciones</a>
+            </nav>
+
+            <div class="header-actions">
+                <button type="button" class="cart-button" id="cartToggle" aria-haspopup="true" aria-expanded="false">
+                    🛒 <span>Carrito</span> <span class="cart-count" id="cartCount">0</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="container">
+
+        <p class="breadcrumb" id="breadcrumb"><a href="index.html">Inicio</a></p>
+
+        <div id="productDetail"></div>
+
+        <section class="related-section">
+            <div class="section-heading">
+                <h2>También te puede interesar</h2>
+                <span></span>
+            </div>
+            <div class="product-grid" id="relatedGrid"></div>
+        </section>
+
+    </main>
+
+    <!-- CARRITO LATERAL -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <aside class="cart-drawer" id="cartDrawer" aria-label="Carrito de compras">
+        <div class="cart-header">
+            <h3>Tu carrito</h3>
+            <button type="button" class="cart-close" id="cartClose" aria-label="Cerrar carrito">✕</button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <p class="cart-empty">Tu carrito está vacío.</p>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total-row">
+                <span>Total</span>
+                <span id="cartTotal">S/ 0.00</span>
+            </div>
+            <a href="checkout.html" class="checkout-btn" id="checkoutBtn">Ir a pagar</a>
+        </div>
+    </aside>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <h3>🎮 DigitalRO</h3>
+                <p>Tu tienda de videojuegos y productos digitales.</p>
+            </div>
+            <div class="footer-links">
+                <a href="condiciones-servicio.html">Condiciones del servicio</a>
+                <a href="politica-privacidad.html">Política de privacidad</a>
+            </div>
+        </div>
+        <div class="copyright">
+            © 2026 DigitalRO — Proyecto académico
+        </div>
+    </footer>
+
+    <script src="js/cart.js"></script>
+    <script src="js/cart-ui.js"></script>
+    <script src="js/producto.js"></script>
+</body>
+</html>
