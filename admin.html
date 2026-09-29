@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Administración | DigitalRO</title>
+    <link rel="stylesheet" href="politica-privacidad.css">
+    <link rel="stylesheet" href="tienda.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-page">
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <img src="Imagenes/logo.png" alt="DigitalRO" class="logo-img">
+                Digital<span>RO</span>
+            </a>
+            <a class="admin-store-link" href="index.html">Volver a la tienda</a>
+        </div>
+    </header>
+
+    <main class="admin-main">
+        <section class="admin-login" id="adminLogin">
+            <div class="admin-login-mark" aria-hidden="true">DR</div>
+            <p class="admin-eyebrow">DIGITALRO / PRIVADO</p>
+            <h1>Panel de pedidos</h1>
+            <p class="admin-muted">Ingresa la clave administrativa configurada en el servidor.</p>
+            <form id="adminLoginForm">
+                <label for="adminKey">Clave administrativa</label>
+                <input id="adminKey" type="password" autocomplete="current-password" required>
+                <p class="admin-error" id="loginError" role="alert"></p>
+                <button class="admin-primary" type="submit">Acceder al panel</button>
+            </form>
+        </section>
+
+        <section class="admin-dashboard" id="adminDashboard" hidden>
+            <div class="admin-page-heading">
+                <div>
+                    <p class="admin-eyebrow">DIGITALRO / OPERACIONES</p>
+                    <h1>Pedidos</h1>
+                    <p class="admin-muted">Clientes, pedidos Yape y coordinación de entregas por WhatsApp.</p>
+                </div>
+                <div class="admin-heading-actions">
+                    <span class="admin-connection" id="connectionState">Conectando</span>
+                    <button class="admin-secondary" id="refreshOrders" type="button">Actualizar</button>
+                    <button class="admin-secondary" id="logoutAdmin" type="button">Cerrar sesión</button>
+                </div>
+            </div>
+
+            <div class="admin-stats" aria-label="Resumen de pedidos">
+                <article class="admin-stat"><span>Pedidos</span><strong id="statOrders">0</strong></article>
+                <article class="admin-stat"><span>Pendientes</span><strong id="statPending">0</strong></article>
+                <article class="admin-stat"><span>Aprobados</span><strong id="statApproved">0</strong></article>
+                <article class="admin-stat"><span>Importe aprobado</span><strong id="statRevenue">S/ 0.00</strong></article>
+            </div>
+
+            <div class="admin-toolbar">
+                <label class="admin-search-label" for="orderSearch">Buscar pedidos</label>
+                <input id="orderSearch" type="search" placeholder="Correo, nombre o referencia">
+                <label class="admin-filter-label" for="statusFilter">Estado</label>
+                <select id="statusFilter">
+                    <option value="all">Todos</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="pending_manual_review">Por verificar</option>
+                    <option value="approved">Aprobado</option>
+                    <option value="rejected">Rechazado</option>
+                    <option value="cancelled">Cancelado</option>
+                    <option value="in_process">En proceso</option>
+                </select>
+                <span class="admin-result-count" id="resultCount">0 pedidos</span>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Pago</th>
+                            <th>Entrega</th>
+                            <th>Medio</th>
+                            <th class="numeric">Total</th>
+                            <th><span class="sr-only">Detalle</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+                <p class="admin-empty" id="ordersEmpty" hidden>No hay pedidos que coincidan con estos filtros.</p>
+            </div>
+            <p class="admin-footnote">Verifica el abono en Yape antes de confirmar el pago. La entrega solo se habilita para pedidos aprobados.</p>
+        </section>
+    </main>
+
+    <dialog class="order-dialog" id="orderDialog">
+        <div class="dialog-heading">
+            <div>
+                <p class="admin-eyebrow">DETALLE DE PEDIDO</p>
+                <h2 id="dialogOrderId">Pedido</h2>
+            </div>
+            <button type="button" class="dialog-close" id="dialogClose" aria-label="Cerrar detalle">×</button>
+        </div>
+        <div id="dialogContent"></div>
+    </dialog>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

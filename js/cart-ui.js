@@ -15,6 +15,8 @@ const CartUI = (() => {
         const checkoutBtn = document.getElementById('checkoutBtn');
         if (!itemsEl || !totalEl || !countEl || !checkoutBtn) return;
 
+        checkoutBtn.textContent = 'Pedir por WhatsApp';
+
         const entries = Object.entries(cart)
             .map(([id, qty]) => ({ product: products.find((p) => p.id === id), qty }))
             .filter((entry) => entry.product);

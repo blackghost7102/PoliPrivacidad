@@ -48,7 +48,7 @@ function productCardHTML(product) {
                 <div class="product-badges">
                     ${product.platform === 'Windows' ? `<span class="badge"><img src="${ICONS.windows}" alt="">${product.platform}</span>` : `<span class="badge">${product.platform}</span>`}
                     <span class="badge"><img src="${typeIcon(product)}" alt="">${product.type}</span>
-                    <span class="badge"><img src="${ICONS.verified}" alt="">Entrega inmediata</span>
+                    <span class="badge"><img src="${ICONS.verified}" alt="">Entrega por WhatsApp</span>
                 </div>
                 <h3 class="product-title">
                     <a class="product-link" href="producto.html?id=${encodeURIComponent(product.id)}">${product.title}</a>

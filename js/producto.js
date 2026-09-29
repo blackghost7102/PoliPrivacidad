@@ -7,9 +7,9 @@ const CATEGORY_LABELS = {
 };
 
 const CATEGORY_DESCRIPTIONS = {
-    software: 'Clave digital original para activar tu producto. Recibirás el código y las instrucciones de activación en tu correo electrónico apenas se confirme el pago.',
-    suscripciones: 'Acceso digital a la plataforma mediante cuenta o clave de activación, según el proveedor. La entrega es inmediata tras la confirmación del pago.',
-    juegos: 'Clave o cuenta para disfrutar el juego en la plataforma indicada. Verifica la región y los requisitos antes de comprar.'
+    software: 'Clave digital para activar el producto. El pago se coordina por Yape y la entrega se confirma contigo por WhatsApp.',
+    suscripciones: 'Acceso digital a la plataforma mediante cuenta o clave, según el producto. El pago y la entrega se coordinan por WhatsApp.',
+    juegos: 'Clave o cuenta para la plataforma indicada. Revisa los detalles y coordina el pago por Yape y la entrega por WhatsApp.'
 };
 
 function typeIconFor(product) {
@@ -54,6 +54,8 @@ function renderNotFound() {
 
 function bindAddToCartButtons(onAdd) {
     document.querySelectorAll('.add-to-cart').forEach((btn) => {
+        if (btn.dataset.cartBound === 'true') return;
+        btn.dataset.cartBound = 'true';
         btn.addEventListener('click', () => {
             CartStore.addItem(btn.dataset.id, 1);
             btn.textContent = 'Añadido ✓';
@@ -86,16 +88,16 @@ function renderProduct(product, allProducts) {
                 <div class="product-badges">
                     ${product.platform === 'Windows' ? `<span class="badge"><img src="Imagenes/Iconos/windows-icon.png" alt="">${product.platform}</span>` : `<span class="badge">${product.platform}</span>`}
                     <span class="badge"><img src="${typeIconFor(product)}" alt="">${product.type}</span>
-                    <span class="badge"><img src="Imagenes/Iconos/verificado-icon.png" alt="">Entrega inmediata</span>
+                    <span class="badge"><img src="Imagenes/Iconos/verificado-icon.png" alt="">Entrega por WhatsApp</span>
                 </div>
                 <h1>${product.title}</h1>
                 <p class="product-detail-price">${formatPEN(product.price)}</p>
                 <p class="product-detail-description">${CATEGORY_DESCRIPTIONS[product.category] || ''}</p>
                 <div class="product-detail-actions">
                     <button type="button" class="add-to-cart" data-id="${product.id}">Añadir al carrito</button>
-                    <a href="checkout.html" class="checkout-btn" id="buyNowBtn">Comprar ahora</a>
+                    <a href="checkout.html" class="checkout-btn" id="buyNowBtn">Pedir por WhatsApp</a>
                 </div>
-                <p class="pay-provider-note">🔒 Pago procesado de forma segura por MercadoPago. DigitalRO no almacena datos de tarjetas.</p>
+                <p class="pay-provider-note">Pago mediante QR de Yape. La entrega se coordina cuando verifiquemos el abono.</p>
             </div>
         </div>
     `;

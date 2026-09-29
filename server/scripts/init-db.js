@@ -40,21 +40,74 @@ async function run() {
     `);
 
     await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Customers')
+        CREATE TABLE Customers (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            FullName NVARCHAR(160) NOT NULL,
+            Email NVARCHAR(254) NOT NULL UNIQUE,
+            WhatsApp NVARCHAR(20) NOT NULL,
+            CreatedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),
+            UpdatedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME())
+        );
+    `);
+
+    await pool.request().query(`
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orders')
         CREATE TABLE Orders (
             Id INT IDENTITY(1,1) PRIMARY KEY,
             ExternalReference NVARCHAR(100) NOT NULL,
+            CustomerId INT NULL,
             PayerName NVARCHAR(100) NULL,
             PayerLastName NVARCHAR(100) NULL,
             PayerEmail NVARCHAR(200) NULL,
             PayerPhone NVARCHAR(30) NULL,
             Status NVARCHAR(30) NOT NULL DEFAULT('pending'),
+            PaymentMethod NVARCHAR(30) NOT NULL DEFAULT('MercadoPago'),
+            FulfillmentStatus NVARCHAR(30) NOT NULL DEFAULT('pending'),
+            ConsentAt DATETIME2 NULL,
             Total DECIMAL(10,2) NOT NULL,
             PreferenceId NVARCHAR(100) NULL,
             PaymentId NVARCHAR(100) NULL,
             CreatedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME()),
             UpdatedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME())
         );
+    `);
+
+    await pool.request().query(`
+        IF COL_LENGTH('dbo.Orders', 'CustomerId') IS NULL
+            ALTER TABLE Orders ADD CustomerId INT NULL;
+        IF COL_LENGTH('dbo.Orders', 'PaymentMethod') IS NULL
+            ALTER TABLE Orders ADD PaymentMethod NVARCHAR(30) NOT NULL CONSTRAINT DF_Orders_PaymentMethod DEFAULT('MercadoPago');
+        IF COL_LENGTH('dbo.Orders', 'FulfillmentStatus') IS NULL
+            ALTER TABLE Orders ADD FulfillmentStatus NVARCHAR(30) NOT NULL CONSTRAINT DF_Orders_FulfillmentStatus DEFAULT('pending');
+        IF COL_LENGTH('dbo.Orders', 'ConsentAt') IS NULL
+            ALTER TABLE Orders ADD ConsentAt DATETIME2 NULL;
+        IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Orders_Customers')
+            ALTER TABLE Orders ADD CONSTRAINT FK_Orders_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(Id);
+    `);
+
+    await pool.request().query(`
+        ;WITH LegacyCustomers AS (
+            SELECT
+                LOWER(LTRIM(RTRIM(PayerEmail))) AS Email,
+                COALESCE(NULLIF(MAX(LTRIM(RTRIM(CONCAT(PayerName, ' ', PayerLastName)))), ''), 'Cliente histórico') AS FullName,
+                COALESCE(MAX(PayerPhone), '') AS WhatsApp,
+                ROW_NUMBER() OVER (PARTITION BY LOWER(LTRIM(RTRIM(PayerEmail))) ORDER BY MAX(CreatedAt) DESC) AS RowNumber
+            FROM Orders
+            WHERE CustomerId IS NULL AND PayerEmail IS NOT NULL AND LTRIM(RTRIM(PayerEmail)) <> ''
+            GROUP BY LOWER(LTRIM(RTRIM(PayerEmail)))
+        )
+        INSERT INTO Customers (FullName, Email, WhatsApp)
+        SELECT legacy.FullName, legacy.Email, legacy.WhatsApp
+        FROM LegacyCustomers legacy
+        WHERE legacy.RowNumber = 1
+          AND NOT EXISTS (SELECT 1 FROM Customers customer WHERE LOWER(customer.Email) = legacy.Email);
+
+        UPDATE orders
+        SET CustomerId = customers.Id
+        FROM Orders orders
+        INNER JOIN Customers customers ON LOWER(customers.Email) = LOWER(LTRIM(RTRIM(orders.PayerEmail)))
+        WHERE orders.CustomerId IS NULL AND orders.PayerEmail IS NOT NULL;
     `);
 
     await pool.request().query(`
@@ -69,7 +122,19 @@ async function run() {
         );
     `);
 
-    console.log('Tablas Products, Orders y OrderItems listas.');
+    await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OrderProofs')
+        CREATE TABLE OrderProofs (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            OrderId INT NOT NULL UNIQUE FOREIGN KEY REFERENCES Orders(Id),
+            OriginalName NVARCHAR(255) NOT NULL,
+            ContentType NVARCHAR(40) NOT NULL,
+            ImageData VARBINARY(MAX) NOT NULL,
+            UploadedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME())
+        );
+    `);
+
+    console.log('Tablas Products, Customers, Orders, OrderItems y OrderProofs listas.');
 
     const productsPath = path.join(__dirname, '..', '..', 'data', 'products.json');
     const products = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));

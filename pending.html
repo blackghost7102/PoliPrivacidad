@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pago pendiente | DigitalRO</title>
+    <title>Verificando pago | DigitalRO</title>
     <link rel="stylesheet" href="politica-privacidad.css">
     <link rel="stylesheet" href="tienda.css">
 </head>
@@ -21,9 +21,9 @@
     <main class="container">
         <div class="result-card">
             <div class="result-icon">⏳</div>
-            <h1>Pago pendiente</h1>
-            <p>Tu pago está siendo procesado por MercadoPago (por ejemplo, pago en efectivo o transferencia). Recibirás la confirmación cuando se acredite.</p>
-            <p id="paymentStatus"></p>
+            <h1>Verificando pago…</h1>
+            <p>Estamos comprobando el estado directamente con MercadoPago.</p>
+            <p id="paymentStatus" aria-live="polite">La comprobación puede tardar unos segundos.</p>
             <a href="index.html">Volver a la tienda</a>
         </div>
     </main>

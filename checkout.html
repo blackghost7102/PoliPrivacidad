@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Pagar pedido | DigitalRO</title>
+    <title>Pedido por WhatsApp | DigitalRO</title>
 
     <link rel="stylesheet" href="politica-privacidad.css">
     <link rel="stylesheet" href="tienda.css">
@@ -24,56 +24,75 @@
                 <a href="index.html">Inicio</a>
             </nav>
 
+            <p class="sales-notice">Todas las ventas son vía WhatsApp</p>
+
         </div>
     </header>
 
     <main class="container">
 
-        <div class="section-heading" style="border:none; margin-bottom: 25px;">
-            <h2>Finalizar compra</h2>
-            <span>Revisa tu pedido y paga de forma segura con MercadoPago</span>
+        <div class="checkout-heading">
+            <div>
+                <p class="hero-badge">PEDIDO DIRECTO</p>
+                <h1>Completa tu pedido</h1>
+                <p>Escanea el QR de Yape, registra tus datos y coordina la entrega por WhatsApp.</p>
+            </div>
+            <a href="index.html" class="back-to-store">← Volver a la tienda</a>
         </div>
 
         <div id="formError" class="form-error"></div>
 
-        <div class="checkout-grid">
+        <div class="checkout-grid whatsapp-order-grid">
 
             <form class="checkout-form" id="checkoutForm">
                 <h2>Datos de contacto</h2>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstName">Nombre</label>
-                        <input type="text" id="firstName" name="firstName" required autocomplete="given-name">
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Apellido</label>
-                        <input type="text" id="lastName" name="lastName" required autocomplete="family-name">
-                    </div>
+                <div class="form-group">
+                    <label for="fullName">Nombre completo</label>
+                    <input type="text" id="fullName" name="fullName" required minlength="2" maxlength="160" autocomplete="name">
                 </div>
 
                 <div class="form-group">
                     <label for="email">Correo electrónico</label>
-                    <input type="email" id="email" name="email" required autocomplete="email">
+                    <input type="email" id="email" name="email" required maxlength="254" autocomplete="email">
                 </div>
-                <p class="form-note">Tus claves y accesos se enviarán a este correo apenas se confirme el pago.</p>
 
                 <div class="form-group">
-                    <label for="phone">Teléfono (opcional)</label>
-                    <input type="tel" id="phone" name="phone" autocomplete="tel">
+                    <label for="whatsapp">Tu WhatsApp con código de país</label>
+                    <input type="tel" id="whatsapp" name="whatsapp" required inputmode="tel" placeholder="519XXXXXXXX" autocomplete="tel">
                 </div>
 
-                <button type="submit" class="checkout-btn" id="payBtn">Continuar con el pago</button>
+                <div class="proof-upload">
+                    <label for="proof">Comprobante de Yape <span>(opcional)</span></label>
+                    <p>Sube una captura PNG, JPG o WebP, máximo 5 MB. También podrás enviarla por WhatsApp al abrir el chat.</p>
+                    <input type="file" id="proof" name="proof" accept="image/png,image/jpeg,image/webp">
+                    <img id="proofPreview" class="proof-preview" alt="Vista previa del comprobante" hidden>
+                </div>
+
+                <label class="privacy-consent" for="privacyConsent">
+                    <input type="checkbox" id="privacyConsent" required>
+                    <span>Acepto que DigitalRO use estos datos y, si adjunto una imagen, el comprobante, para registrar y coordinar este pedido. <a href="politica-privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>.</span>
+                </label>
+
+                <button type="submit" class="checkout-btn" id="payBtn">Registrar pedido y abrir WhatsApp</button>
+                <p id="orderConfirmation" class="order-confirmation" role="status" hidden></p>
+                <p class="form-note order-security-note">No ingreses datos de tarjeta ni claves de Yape. El pago se realiza desde la app de Yape.</p>
             </form>
 
             <aside class="order-summary">
-                <h2>Tu pedido</h2>
+                <h2>Pago con Yape</h2>
+                <div class="yape-qr-frame">
+                    <img src="Imagenes/codigoqr.jpg" alt="Código QR de Yape de DigitalRO">
+                </div>
+                <p class="yape-instructions">Escanea el QR desde Yape y paga el importe exacto del pedido. La entrega se coordina después de verificar el abono.</p>
+                <div class="summary-divider"></div>
+                <h2>Resumen del pedido</h2>
                 <div id="summaryItems"></div>
                 <div class="summary-total">
                     <span>Total</span>
                     <span id="summaryTotal">S/ 0.00</span>
                 </div>
-                <p class="pay-provider-note">🔒 Pago procesado de forma segura por MercadoPago. DigitalRO no almacena datos de tarjetas.</p>
+                <p class="pay-provider-note">El pedido se registra primero y luego se abre WhatsApp con su número y detalle. Adjunta allí la captura para que podamos revisarla.</p>
             </aside>
 
         </div>
@@ -92,11 +111,12 @@
             </div>
         </div>
         <div class="copyright">
-            © 2026 DigitalRO — Proyecto académico
+            © 2026 DigitalRO
         </div>
     </footer>
 
     <script src="js/cart.js"></script>
+    <script src="js/cart-ui.js"></script>
     <script src="js/checkout.js"></script>
 </body>
 </html>
