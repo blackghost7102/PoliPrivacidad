@@ -35,7 +35,20 @@ async function run() {
             Type NVARCHAR(30) NOT NULL,
             Price DECIMAL(10,2) NOT NULL,
             Logo NVARCHAR(300) NOT NULL,
-            Color NVARCHAR(20) NOT NULL
+            Color NVARCHAR(20) NOT NULL,
+            IsActive BIT NOT NULL CONSTRAINT DF_Products_IsActive DEFAULT(1)
+        );
+    `);
+
+    await pool.request().query(`
+        IF COL_LENGTH('dbo.Products', 'IsActive') IS NULL
+            ALTER TABLE Products ADD IsActive BIT NOT NULL CONSTRAINT DF_Products_IsActive_Migration DEFAULT(1);
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductImages')
+        CREATE TABLE ProductImages (
+            ProductId NVARCHAR(60) PRIMARY KEY FOREIGN KEY REFERENCES Products(Id),
+            ContentType NVARCHAR(40) NOT NULL,
+            ImageData VARBINARY(MAX) NOT NULL,
+            UpdatedAt DATETIME2 NOT NULL DEFAULT(SYSUTCDATETIME())
         );
     `);
 
@@ -65,6 +78,7 @@ async function run() {
             PaymentMethod NVARCHAR(30) NOT NULL DEFAULT('MercadoPago'),
             FulfillmentStatus NVARCHAR(30) NOT NULL DEFAULT('pending'),
             ConsentAt DATETIME2 NULL,
+            ArchivedAt DATETIME2 NULL,
             Total DECIMAL(10,2) NOT NULL,
             PreferenceId NVARCHAR(100) NULL,
             PaymentId NVARCHAR(100) NULL,
@@ -82,6 +96,8 @@ async function run() {
             ALTER TABLE Orders ADD FulfillmentStatus NVARCHAR(30) NOT NULL CONSTRAINT DF_Orders_FulfillmentStatus DEFAULT('pending');
         IF COL_LENGTH('dbo.Orders', 'ConsentAt') IS NULL
             ALTER TABLE Orders ADD ConsentAt DATETIME2 NULL;
+        IF COL_LENGTH('dbo.Orders', 'ArchivedAt') IS NULL
+            ALTER TABLE Orders ADD ArchivedAt DATETIME2 NULL;
         IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Orders_Customers')
             ALTER TABLE Orders ADD CONSTRAINT FK_Orders_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(Id);
     `);

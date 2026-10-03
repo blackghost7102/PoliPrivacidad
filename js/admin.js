@@ -3,7 +3,9 @@ const dateFormatter = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', ti
 
 let adminKey = '';
 let orders = [];
+let products = [];
 let proofObjectUrl = '';
+let productPreviewUrl = '';
 
 function formatCurrency(amount) {
     return currencyFormatter.format(Number(amount) || 0);
@@ -46,7 +48,8 @@ function setConnectionState(message, connected = false) {
 async function loadOrders() {
     setConnectionState('Actualizando…');
     try {
-        const response = await fetch('/api/orders', {
+        const view = document.getElementById('archiveFilter')?.value || 'active';
+        const response = await fetch(`/api/orders?view=${encodeURIComponent(view)}`, {
             headers: { 'x-admin-key': adminKey },
             cache: 'no-store'
         });
@@ -72,6 +75,200 @@ async function loadOrders() {
         showLoginError('No se pudo conectar con el servidor o la base de datos.');
         return false;
     }
+}
+
+async function loadProducts() {
+    setConnectionState('Cargando catálogo…');
+    try {
+        const response = await fetch('/api/admin/products', {
+            headers: { 'x-admin-key': adminKey },
+            cache: 'no-store'
+        });
+        if (response.status === 404) {
+            adminKey = '';
+            document.getElementById('adminDashboard').hidden = true;
+            document.getElementById('adminLogin').hidden = false;
+            showLoginError('Clave incorrecta o ADMIN_API_KEY sin configurar en server/.env.');
+            setConnectionState('Sin acceso');
+            return false;
+        }
+        if (!response.ok) throw new Error('No se pudo consultar el catálogo.');
+        products = await response.json();
+        setConnectionState('Servidor conectado', true);
+        renderProducts();
+        return true;
+    } catch (error) {
+        setConnectionState('Error de conexión');
+        document.getElementById('productResultCount').textContent = error.message;
+        return false;
+    }
+}
+
+function filteredProducts() {
+    const search = document.getElementById('productSearch').value.trim().toLowerCase();
+    const visibility = document.getElementById('productVisibility').value;
+    return products.filter((product) => {
+        const isActive = product.isActive === true || product.isActive === 1;
+        const matchesVisibility = visibility === 'all' || (visibility === 'active' ? isActive : !isActive);
+        const haystack = [product.title, product.category, product.platform, product.id].join(' ').toLowerCase();
+        return matchesVisibility && (!search || haystack.includes(search));
+    });
+}
+
+function renderProducts() {
+    const list = filteredProducts();
+    const tbody = document.getElementById('productsTableBody');
+    document.getElementById('productResultCount').textContent = `${list.length} ${list.length === 1 ? 'producto' : 'productos'}`;
+    document.getElementById('productsEmpty').hidden = list.length > 0;
+
+    tbody.innerHTML = list.map((product) => {
+        const active = product.isActive === true || product.isActive === 1;
+        const visibility = active
+            ? '<span class="status-badge status-approved">Activo</span>'
+            : '<span class="status-badge status-pending">Retirado</span>';
+        const action = active
+            ? `<button class="row-action danger" type="button" data-product-action="retire" data-product-id="${escapeHTML(product.id)}">Retirar</button>`
+            : `<button class="row-action" type="button" data-product-action="restore" data-product-id="${escapeHTML(product.id)}">Reactivar</button>`;
+        return `
+            <tr>
+                <td>
+                    <div class="admin-product-cell">
+                        <span class="admin-product-thumb" style="--product-glow:${escapeHTML(product.color)}"><img src="${escapeHTML(product.logo)}" alt="" loading="lazy"></span>
+                        <span><strong>${escapeHTML(product.title)}</strong><span class="table-subtext">${escapeHTML(product.id)}</span></span>
+                    </div>
+                </td>
+                <td>${escapeHTML(product.category)}</td>
+                <td>${escapeHTML(product.platform)}</td>
+                <td>${escapeHTML(product.type)}</td>
+                <td class="numeric">${formatCurrency(product.price)}</td>
+                <td>${visibility}</td>
+                <td><div class="admin-product-actions"><button class="row-action" type="button" data-product-action="edit" data-product-id="${escapeHTML(product.id)}">Editar</button>${action}</div></td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.querySelectorAll('[data-product-action]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const product = products.find((item) => item.id === button.dataset.productId);
+            if (!product) return;
+            if (button.dataset.productAction === 'edit') openProductEditor(product);
+            if (button.dataset.productAction === 'retire') retireProduct(product);
+            if (button.dataset.productAction === 'restore') restoreProduct(product);
+        });
+    });
+}
+
+function releaseProductPreview() {
+    if (productPreviewUrl) URL.revokeObjectURL(productPreviewUrl);
+    productPreviewUrl = '';
+}
+
+function openProductEditor(product = null) {
+    const form = document.getElementById('productForm');
+    const dialog = document.getElementById('productDialog');
+    const imageInput = document.getElementById('productImage');
+    const preview = document.getElementById('productImagePreview');
+    releaseProductPreview();
+    form.reset();
+    document.getElementById('productFormError').textContent = '';
+    document.getElementById('productId').value = product?.id || '';
+    document.getElementById('productDialogTitle').textContent = product ? 'Editar producto' : 'Añadir producto';
+    document.getElementById('productTitle').value = product?.title || '';
+    document.getElementById('productCategory').value = product?.category || 'software';
+    document.getElementById('productPlatform').value = product?.platform || '';
+    document.getElementById('productType').value = product?.type || 'Clave de CD';
+    document.getElementById('productPrice').value = product?.price ?? '';
+    document.getElementById('productColor').value = product?.color || '#2563eb';
+    imageInput.required = !product;
+    preview.hidden = !product;
+    if (product) preview.src = product.logo;
+    dialog.showModal();
+}
+
+async function saveProduct(event) {
+    event.preventDefault();
+    const form = document.getElementById('productForm');
+    const errorElement = document.getElementById('productFormError');
+    const button = document.getElementById('saveProductButton');
+    errorElement.textContent = '';
+
+    const file = document.getElementById('productImage').files[0];
+    if (file && (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+        errorElement.textContent = 'La imagen debe ser PNG, JPG o WebP y no superar 5 MB.';
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Guardando…';
+    const productId = document.getElementById('productId').value;
+    const payload = new FormData(form);
+    const url = productId ? `/api/admin/products/${encodeURIComponent(productId)}` : '/api/admin/products';
+
+    try {
+        const response = await fetch(url, {
+            method: productId ? 'PUT' : 'POST',
+            headers: { 'x-admin-key': adminKey },
+            body: payload
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'No se pudo guardar el producto.');
+        document.getElementById('productDialog').close();
+        await loadProducts();
+    } catch (error) {
+        errorElement.textContent = error.message;
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Guardar producto';
+    }
+}
+
+async function retireProduct(product) {
+    if (!confirm(`¿Retirar "${product.title}" del catálogo? El historial de pedidos se conservará.`)) return;
+    try {
+        const response = await fetch(`/api/admin/products/${encodeURIComponent(product.id)}`, {
+            method: 'DELETE',
+            headers: { 'x-admin-key': adminKey }
+        });
+        if (!response.ok) throw new Error('No se pudo retirar el producto.');
+        await loadProducts();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function restoreProduct(product) {
+    try {
+        const response = await fetch(`/api/admin/products/${encodeURIComponent(product.id)}/restore`, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey }
+        });
+        if (!response.ok) throw new Error('No se pudo reactivar el producto.');
+        await loadProducts();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function setupAdminTabs() {
+    const ordersTab = document.getElementById('tabOrders');
+    const productsTab = document.getElementById('tabProducts');
+    ordersTab.addEventListener('click', () => {
+        document.getElementById('ordersPanel').hidden = false;
+        document.getElementById('productsPanel').hidden = true;
+        ordersTab.classList.add('active');
+        productsTab.classList.remove('active');
+        ordersTab.setAttribute('aria-selected', 'true');
+        productsTab.setAttribute('aria-selected', 'false');
+    });
+    productsTab.addEventListener('click', async () => {
+        document.getElementById('ordersPanel').hidden = true;
+        document.getElementById('productsPanel').hidden = false;
+        productsTab.classList.add('active');
+        ordersTab.classList.remove('active');
+        productsTab.setAttribute('aria-selected', 'true');
+        ordersTab.setAttribute('aria-selected', 'false');
+        await loadProducts();
+    });
 }
 
 function filteredOrders() {
@@ -115,21 +312,41 @@ function renderOrders() {
         const fulfillment = order.FulfillmentStatus === 'delivered' ? 'Entregado' : 'Pendiente';
         return `
             <tr>
-                <td><strong>#${escapeHTML(order.Id)}</strong><span class="table-subtext">${escapeHTML(order.ExternalReference)}</span></td>
+                <td><strong>#${escapeHTML(order.Id)}</strong><span class="table-subtext">${escapeHTML(order.ExternalReference)}</span>${order.ArchivedAt ? '<span class="table-subtext">Retirado</span>' : ''}</td>
                 <td><strong>${escapeHTML(customer)}</strong><span class="table-subtext">${escapeHTML(order.PayerEmail || 'Sin correo')}</span></td>
                 <td>${escapeHTML(date)}</td>
                 <td><span class="status-badge status-${escapeHTML(order.Status)}">${escapeHTML(statusLabel(order.Status))}</span><span class="table-subtext">${order.HasProof ? 'Comprobante adjunto' : 'Sin comprobante'}</span></td>
             <td><span class="status-badge ${order.FulfillmentStatus === 'delivered' ? 'status-approved' : 'status-pending'}">${fulfillment}</span></td>
             <td>${escapeHTML(order.PaymentMethod || 'MercadoPago')}</td>
                 <td class="numeric">${formatCurrency(order.Total)}</td>
-                <td><button class="row-action" type="button" data-order-id="${Number(order.Id)}">Ver</button></td>
+                <td><button class="row-action" type="button" data-order-detail="${Number(order.Id)}">Ver</button></td>
+                <td>${order.ArchivedAt
+                    ? `<button class="row-action" type="button" data-order-action="restore" data-order-id="${Number(order.Id)}">Restaurar</button>`
+                    : `<button class="row-action danger" type="button" data-order-action="archive" data-order-id="${Number(order.Id)}">Retirar</button>`}</td>
             </tr>
         `;
     }).join('');
 
-    tbody.querySelectorAll('[data-order-id]').forEach((button) => {
-        button.addEventListener('click', () => showOrderDetail(Number(button.dataset.orderId)));
+    tbody.querySelectorAll('[data-order-detail]').forEach((button) => {
+        button.addEventListener('click', () => showOrderDetail(Number(button.dataset.orderDetail)));
     });
+    tbody.querySelectorAll('[data-order-action]').forEach((button) => {
+        button.addEventListener('click', () => changeOrderArchiveState(Number(button.dataset.orderId), button.dataset.orderAction));
+    });
+}
+
+async function changeOrderArchiveState(orderId, action) {
+    if (action === 'archive' && !confirm(`¿Retirar el pedido #${orderId} de la lista activa? Se conservará en el historial y podrás restaurarlo.`)) return;
+    try {
+        const response = await fetch(`/api/orders/${orderId}/${action}`, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey }
+        });
+        if (!response.ok) throw new Error(action === 'archive' ? 'No se pudo retirar el pedido.' : 'No se pudo restaurar el pedido.');
+        await loadOrders();
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 function getCustomerOrderCount(email) {
@@ -317,6 +534,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', async (even
 
 document.getElementById('orderSearch').addEventListener('input', renderOrders);
 document.getElementById('statusFilter').addEventListener('change', renderOrders);
+document.getElementById('archiveFilter').addEventListener('change', loadOrders);
 document.getElementById('refreshOrders').addEventListener('click', loadOrders);
 const exportCsvBtn = document.getElementById('exportOrdersCsv');
 if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportOrdersToCSV);
@@ -336,4 +554,28 @@ document.getElementById('orderDialog').addEventListener('click', (event) => {
 document.getElementById('orderDialog').addEventListener('close', () => {
     if (proofObjectUrl) URL.revokeObjectURL(proofObjectUrl);
     proofObjectUrl = '';
+});
+
+setupAdminTabs();
+document.getElementById('addProductButton').addEventListener('click', () => openProductEditor());
+document.getElementById('productForm').addEventListener('submit', saveProduct);
+document.getElementById('closeProductDialog').addEventListener('click', () => document.getElementById('productDialog').close());
+document.getElementById('cancelProductDialog').addEventListener('click', () => document.getElementById('productDialog').close());
+document.getElementById('productDialog').addEventListener('close', releaseProductPreview);
+document.getElementById('productSearch').addEventListener('input', renderProducts);
+document.getElementById('productVisibility').addEventListener('change', renderProducts);
+document.getElementById('productImage').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    const preview = document.getElementById('productImagePreview');
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+        event.target.value = '';
+        document.getElementById('productFormError').textContent = 'La imagen debe ser PNG, JPG o WebP y no superar 5 MB.';
+        return;
+    }
+    document.getElementById('productFormError').textContent = '';
+    releaseProductPreview();
+    productPreviewUrl = URL.createObjectURL(file);
+    preview.src = productPreviewUrl;
+    preview.hidden = false;
 });

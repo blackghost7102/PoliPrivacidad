@@ -161,6 +161,34 @@
     margin: 8px 0 0;
 }
 
+.admin-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-tab {
+    padding: 10px 16px;
+    color: #9aa8ba;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.admin-tab:hover,
+.admin-tab.active {
+    color: var(--admin-cyan);
+}
+
+.admin-tab.active {
+    border-bottom-color: var(--admin-cyan);
+}
+
 .admin-heading-actions {
     display: flex;
     align-items: center;
@@ -234,7 +262,7 @@
 
 .admin-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) 150px auto;
+    grid-template-columns: minmax(180px, 1fr) 150px 130px auto;
     align-items: end;
     gap: 12px;
     margin-bottom: 12px;
@@ -262,8 +290,18 @@
     width: 100%;
 }
 
-.admin-result-count {
+.admin-archive-label {
     grid-column: 3;
+    grid-row: 1;
+}
+
+.admin-archive-filter {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.admin-result-count {
+    grid-column: 4;
     grid-row: 2;
     padding-bottom: 12px;
     color: #97a6b8;
@@ -390,6 +428,208 @@
     margin-top: 12px;
     color: #738398;
     font-size: 10px;
+}
+
+.products-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.products-toolbar h2 {
+    margin: 0;
+    color: #f3f6fb;
+    font-size: 18px;
+}
+
+.products-toolbar .admin-muted {
+    margin: 5px 0 0;
+}
+
+.add-product-button {
+    width: auto;
+    min-height: 38px;
+    margin: 0;
+    padding: 0 14px;
+}
+
+.product-admin-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 150px auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.product-admin-filters label {
+    color: #bac5d3;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.product-admin-filters input,
+.product-admin-filters select {
+    height: 40px;
+    padding: 0 10px;
+    color: #f3f6fb;
+    background: #0a1019;
+    border: 1px solid #344153;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 12px;
+}
+
+.product-admin-filters input {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.product-admin-filters label:first-child {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.product-admin-filters label:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.product-admin-filters select {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.product-admin-filters .admin-result-count {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.products-table td:first-child {
+    min-width: 220px;
+}
+
+.admin-product-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-product-thumb {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: grid;
+    place-items: center;
+    background: #080d15;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.admin-product-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.admin-product-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.admin-product-actions .row-action.danger {
+    color: #ff9999;
+}
+
+.product-dialog {
+    width: min(720px, calc(100% - 24px));
+    max-height: min(90vh, 800px);
+    padding: 24px;
+    color: #e7edf5;
+    background: #111824;
+    border: 1px solid #344153;
+    border-radius: 8px;
+    overflow: auto;
+}
+
+.product-dialog::backdrop {
+    background: rgba(2, 5, 10, 0.76);
+    backdrop-filter: blur(3px);
+}
+
+.product-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+    margin-top: 18px;
+}
+
+.product-form-grid label {
+    display: grid;
+    gap: 6px;
+    color: #bac5d3;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.product-form-grid label input:not([type="file"]):not([type="color"]),
+.product-form-grid select {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 10px;
+    color: #f3f6fb;
+    background: #0a1019;
+    border: 1px solid #344153;
+    border-radius: 5px;
+    font: inherit;
+    font-size: 12px;
+}
+
+.product-form-grid input[type="color"] {
+    width: 100%;
+    height: 40px;
+    padding: 3px;
+    background: #0a1019;
+    border: 1px solid #344153;
+    border-radius: 5px;
+}
+
+.product-form-wide {
+    grid-column: 1 / -1;
+}
+
+.admin-form-help {
+    color: #8594a8;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.product-image-preview {
+    width: 110px;
+    height: 110px;
+    grid-column: 1 / -1;
+    padding: 8px;
+    background: #0a1019;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    object-fit: contain;
+}
+
+.product-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.product-dialog-actions .admin-primary {
+    width: auto;
+    min-height: 38px;
+    margin: 0;
+    padding: 0 14px;
 }
 
 .order-dialog {
@@ -607,16 +847,61 @@
         grid-column: 1 / -1;
     }
 
-    .admin-filter-label,
-    .admin-toolbar select {
+    .admin-filter-label {
         grid-column: 1;
+        grid-row: 3;
+    }
+
+    .admin-toolbar select#statusFilter {
+        grid-column: 1;
+        grid-row: 4;
+    }
+
+    .admin-archive-label {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    .admin-archive-filter {
+        grid-column: 2;
+        grid-row: 4;
     }
 
     .admin-result-count {
-        grid-column: 2;
+        grid-column: 1 / -1;
+        grid-row: 5;
+        padding-bottom: 0;
+        text-align: left;
     }
 
     .dialog-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .products-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .product-admin-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .product-admin-filters label:first-child,
+    .product-admin-filters input {
+        grid-column: 1 / -1;
+    }
+
+    .product-admin-filters label:nth-of-type(2),
+    .product-admin-filters select {
+        grid-column: 1;
+    }
+
+    .product-admin-filters .admin-result-count {
+        grid-column: 2;
+    }
+
+    .product-form-grid {
         grid-template-columns: 1fr;
     }
 }

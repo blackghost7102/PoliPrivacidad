@@ -19,6 +19,10 @@ const proofUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 5, fieldSize: 16 * 1024 }
 });
+const productImageUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 8, fieldSize: 16 * 1024 }
+});
 
 if (!ACCESS_TOKEN) {
     console.warn('[DigitalRO] Falta MP_ACCESS_TOKEN en server/.env — copia .env.example y coloca tus credenciales.');
@@ -34,11 +38,40 @@ function isAdminRequest(req) {
     return Boolean(adminKey && expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied));
 }
 
+function requireAdmin(req, res, next) {
+    if (!isAdminRequest(req)) return res.sendStatus(404);
+    next();
+}
+
 function identifyImage(buffer) {
     if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return 'image/png';
     if (buffer.length >= 3 && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255) return 'image/jpeg';
     if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
     return null;
+}
+
+function validateProductFields(body) {
+    const category = String(body.category || '').trim();
+    const title = String(body.title || '').trim();
+    const platform = String(body.platform || '').trim();
+    const type = String(body.type || '').trim();
+    const price = Number(body.price);
+    const color = String(body.color || '').trim();
+
+    if (!['software', 'suscripciones', 'juegos'].includes(category)) return { error: 'Selecciona una categoría válida.' };
+    if (title.length < 3 || title.length > 200) return { error: 'El título debe tener entre 3 y 200 caracteres.' };
+    if (!platform || platform.length > 30) return { error: 'Ingresa una plataforma válida (máximo 30 caracteres).' };
+    if (!['Clave de CD', 'Cuenta'].includes(type)) return { error: 'Selecciona un tipo de producto válido.' };
+    if (!Number.isFinite(price) || price <= 0 || price > 99999) return { error: 'Ingresa un precio válido mayor a 0.' };
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) return { error: 'Elige un color hexadecimal válido.' };
+
+    return { product: { category, title, platform, type, price, color } };
+}
+
+function createProductId(title) {
+    const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 45);
+    return `custom-${slug}-${crypto.randomBytes(3).toString('hex')}`;
 }
 
 function loadProductsFromFile() {
@@ -49,8 +82,8 @@ function loadProductsFromFile() {
 async function loadProducts() {
     try {
         const pool = await getPool();
-        const result = await pool.request().query('SELECT Id AS id, Category AS category, Title AS title, Platform AS platform, Type AS type, Price AS price, Logo AS logo, Color AS color FROM Products');
-        if (result.recordset.length > 0) return result.recordset;
+        const result = await pool.request().query('SELECT Id AS id, Category AS category, Title AS title, Platform AS platform, Type AS type, Price AS price, Logo AS logo, Color AS color FROM Products WHERE IsActive = 1');
+        return result.recordset;
     } catch (err) {
         console.warn('[DigitalRO] No se pudo leer Products desde SQL Server, usando data/products.json:', err.message);
     }
@@ -111,6 +144,190 @@ app.use(express.static(ROOT_DIR));
 
 app.get('/api/products', async (req, res) => {
     res.json(await loadProducts());
+});
+
+app.get('/api/admin/products', async (req, res) => {
+    if (!isAdminRequest(req)) return res.sendStatus(404);
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT Id AS id, Category AS category, Title AS title, Platform AS platform,
+                Type AS type, Price AS price, Logo AS logo, Color AS color, IsActive AS isActive
+            FROM Products ORDER BY IsActive DESC, Category, Title;
+        `);
+        res.set('Cache-Control', 'no-store').json(result.recordset);
+    } catch (err) {
+        console.error('[DigitalRO] Error leyendo productos del panel:', err.message);
+        res.status(500).json({ error: 'No se pudo consultar el catálogo.' });
+    }
+});
+
+app.get('/api/product-images/:id', async (req, res) => {
+    const productId = String(req.params.id || '');
+    if (!/^[a-z0-9-]{1,60}$/.test(productId)) return res.sendStatus(400);
+    try {
+        const pool = await getPool();
+        const result = await pool.request()
+            .input('productId', sql.NVarChar(60), productId)
+            .query(`
+                SELECT image.ContentType, image.ImageData
+                FROM ProductImages image
+                INNER JOIN Products product ON product.Id = image.ProductId
+                WHERE product.Id = @productId AND product.IsActive = 1;
+            `);
+        if (result.recordset.length === 0) return res.sendStatus(404);
+        res.set({
+            'Cache-Control': 'public, max-age=300',
+            'X-Content-Type-Options': 'nosniff'
+        }).type(result.recordset[0].ContentType).send(result.recordset[0].ImageData);
+    } catch (err) {
+        console.error('[DigitalRO] Error leyendo imagen de producto:', err.message);
+        res.sendStatus(500);
+    }
+});
+
+app.post('/api/admin/products', requireAdmin, productImageUpload.single('image'), async (req, res) => {
+    const validation = validateProductFields(req.body);
+    if (validation.error) return res.status(400).json({ error: validation.error });
+    if (!req.file) return res.status(400).json({ error: 'Adjunta una imagen del producto.' });
+    const contentType = identifyImage(req.file.buffer);
+    if (!contentType || contentType !== req.file.mimetype) {
+        return res.status(400).json({ error: 'La imagen debe ser un archivo PNG, JPG o WebP válido.' });
+    }
+
+    const id = createProductId(validation.product.title);
+    const logo = `api/product-images/${id}`;
+    let transaction;
+    try {
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+
+        await new sql.Request(transaction)
+            .input('id', sql.NVarChar(60), id)
+            .input('category', sql.NVarChar(30), validation.product.category)
+            .input('title', sql.NVarChar(200), validation.product.title)
+            .input('platform', sql.NVarChar(30), validation.product.platform)
+            .input('type', sql.NVarChar(30), validation.product.type)
+            .input('price', sql.Decimal(10, 2), validation.product.price)
+            .input('logo', sql.NVarChar(300), logo)
+            .input('color', sql.NVarChar(20), validation.product.color)
+            .query(`
+                INSERT INTO Products (Id, Category, Title, Platform, Type, Price, Logo, Color, IsActive)
+                VALUES (@id, @category, @title, @platform, @type, @price, @logo, @color, 1);
+            `);
+
+        await new sql.Request(transaction)
+            .input('productId', sql.NVarChar(60), id)
+            .input('contentType', sql.NVarChar(40), contentType)
+            .input('imageData', sql.VarBinary(sql.MAX), req.file.buffer)
+            .query('INSERT INTO ProductImages (ProductId, ContentType, ImageData) VALUES (@productId, @contentType, @imageData);');
+
+        await transaction.commit();
+        res.status(201).json({ id, ...validation.product, logo, isActive: true });
+    } catch (err) {
+        if (transaction && transaction._aborted !== true) {
+            try { await transaction.rollback(); } catch {}
+        }
+        console.error('[DigitalRO] Error creando producto:', err.message);
+        res.status(500).json({ error: 'No se pudo guardar el producto.' });
+    }
+});
+
+app.put('/api/admin/products/:id', requireAdmin, productImageUpload.single('image'), async (req, res) => {
+    const id = String(req.params.id || '');
+    if (!/^[a-z0-9-]{1,60}$/.test(id)) return res.status(400).json({ error: 'ID de producto inválido.' });
+    const validation = validateProductFields(req.body);
+    if (validation.error) return res.status(400).json({ error: validation.error });
+    const contentType = req.file ? identifyImage(req.file.buffer) : null;
+    if (req.file && (!contentType || contentType !== req.file.mimetype)) {
+        return res.status(400).json({ error: 'La imagen debe ser un archivo PNG, JPG o WebP válido.' });
+    }
+
+    let transaction;
+    try {
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+        const exists = await new sql.Request(transaction)
+            .input('id', sql.NVarChar(60), id)
+            .query('SELECT Id FROM Products WITH (UPDLOCK, HOLDLOCK) WHERE Id = @id;');
+        if (exists.recordset.length === 0) {
+            await transaction.rollback();
+            return res.sendStatus(404);
+        }
+
+        await new sql.Request(transaction)
+            .input('id', sql.NVarChar(60), id)
+            .input('category', sql.NVarChar(30), validation.product.category)
+            .input('title', sql.NVarChar(200), validation.product.title)
+            .input('platform', sql.NVarChar(30), validation.product.platform)
+            .input('type', sql.NVarChar(30), validation.product.type)
+            .input('price', sql.Decimal(10, 2), validation.product.price)
+            .input('color', sql.NVarChar(20), validation.product.color)
+            .query(`
+                UPDATE Products
+                SET Category = @category, Title = @title, Platform = @platform,
+                    Type = @type, Price = @price, Color = @color
+                WHERE Id = @id;
+            `);
+
+        if (req.file) {
+            await new sql.Request(transaction)
+                .input('productId', sql.NVarChar(60), id)
+                .input('contentType', sql.NVarChar(40), contentType)
+                .input('imageData', sql.VarBinary(sql.MAX), req.file.buffer)
+                .query(`
+                    MERGE ProductImages AS target
+                    USING (SELECT @productId AS ProductId) AS source ON target.ProductId = source.ProductId
+                    WHEN MATCHED THEN UPDATE SET ContentType = @contentType, ImageData = @imageData, UpdatedAt = SYSUTCDATETIME()
+                    WHEN NOT MATCHED THEN INSERT (ProductId, ContentType, ImageData) VALUES (@productId, @contentType, @imageData);
+                `);
+        }
+
+        await transaction.commit();
+        res.json({ id, ...validation.product, logo: `api/product-images/${id}` });
+    } catch (err) {
+        if (transaction && transaction._aborted !== true) {
+            try { await transaction.rollback(); } catch {}
+        }
+        console.error('[DigitalRO] Error editando producto:', err.message);
+        res.status(500).json({ error: 'No se pudo actualizar el producto.' });
+    }
+});
+
+app.delete('/api/admin/products/:id', async (req, res) => {
+    if (!isAdminRequest(req)) return res.sendStatus(404);
+    const id = String(req.params.id || '');
+    if (!/^[a-z0-9-]{1,60}$/.test(id)) return res.status(400).json({ error: 'ID de producto inválido.' });
+    try {
+        const pool = await getPool();
+        const result = await pool.request()
+            .input('id', sql.NVarChar(60), id)
+            .query('UPDATE Products SET IsActive = 0 WHERE Id = @id AND IsActive = 1; SELECT @@ROWCOUNT AS Affected;');
+        if (!result.recordset[0].Affected) return res.sendStatus(404);
+        res.sendStatus(204);
+    } catch (err) {
+        console.error('[DigitalRO] Error retirando producto:', err.message);
+        res.status(500).json({ error: 'No se pudo retirar el producto del catálogo.' });
+    }
+});
+
+app.post('/api/admin/products/:id/restore', async (req, res) => {
+    if (!isAdminRequest(req)) return res.sendStatus(404);
+    const id = String(req.params.id || '');
+    if (!/^[a-z0-9-]{1,60}$/.test(id)) return res.status(400).json({ error: 'ID de producto inválido.' });
+    try {
+        const pool = await getPool();
+        const result = await pool.request()
+            .input('id', sql.NVarChar(60), id)
+            .query('UPDATE Products SET IsActive = 1 WHERE Id = @id AND IsActive = 0; SELECT @@ROWCOUNT AS Affected;');
+        if (!result.recordset[0].Affected) return res.sendStatus(404);
+        res.sendStatus(204);
+    } catch (err) {
+        console.error('[DigitalRO] Error restaurando producto:', err.message);
+        res.status(500).json({ error: 'No se pudo reactivar el producto.' });
+    }
 });
 
 app.post('/api/whatsapp-orders', proofUpload.single('proof'), async (req, res) => {
@@ -445,15 +662,23 @@ async function handleWebhook(query, body) {
 // Historial de pedidos (uso interno/administrativo).
 app.get('/api/orders', async (req, res) => {
     if (!isAdminRequest(req)) return res.sendStatus(404);
+    const requestedView = String(req.query.view || 'active');
+    const archiveView = ['active', 'archived', 'all'].includes(requestedView) ? requestedView : 'active';
 
     try {
         res.set('Cache-Control', 'no-store');
         const pool = await getPool();
-        const orders = await pool.request().query(`
+        const orders = await pool.request()
+            .input('archiveView', sql.NVarChar(10), archiveView)
+            .query(`
             SELECT TOP (250) o.Id, o.ExternalReference, o.CustomerId, o.PayerName, o.PayerLastName, o.PayerEmail, o.PayerPhone,
-                o.Status, o.PaymentMethod, o.FulfillmentStatus, o.Total, o.PreferenceId, o.PaymentId, o.CreatedAt,
+                o.Status, o.PaymentMethod, o.FulfillmentStatus, o.ArchivedAt, o.Total, o.PreferenceId, o.PaymentId, o.CreatedAt,
                 CASE WHEN EXISTS (SELECT 1 FROM OrderProofs p WHERE p.OrderId = o.Id) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS HasProof
-            FROM Orders o ORDER BY o.CreatedAt DESC;
+            FROM Orders o
+            WHERE @archiveView = 'all'
+                OR (@archiveView = 'archived' AND o.ArchivedAt IS NOT NULL)
+                OR (@archiveView = 'active' AND o.ArchivedAt IS NULL)
+            ORDER BY o.CreatedAt DESC;
         `);
 
         const rows = orders.recordset;
@@ -485,6 +710,38 @@ app.get('/api/orders', async (req, res) => {
     } catch (err) {
         console.error('[DigitalRO] Error leyendo historial de pedidos:', err.message);
         res.status(500).json({ error: 'No se pudo leer el historial de pedidos.' });
+    }
+});
+
+app.post('/api/orders/:id/archive', requireAdmin, async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: 'ID de pedido inválido.' });
+    try {
+        const pool = await getPool();
+        const result = await pool.request()
+            .input('orderId', sql.Int, orderId)
+            .query('UPDATE Orders SET ArchivedAt = SYSUTCDATETIME(), UpdatedAt = SYSUTCDATETIME() WHERE Id = @orderId AND ArchivedAt IS NULL; SELECT @@ROWCOUNT AS Affected;');
+        if (!result.recordset[0].Affected) return res.sendStatus(404);
+        res.sendStatus(204);
+    } catch (err) {
+        console.error('[DigitalRO] Error retirando pedido:', err.message);
+        res.status(500).json({ error: 'No se pudo retirar el pedido de la lista activa.' });
+    }
+});
+
+app.post('/api/orders/:id/restore', requireAdmin, async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: 'ID de pedido inválido.' });
+    try {
+        const pool = await getPool();
+        const result = await pool.request()
+            .input('orderId', sql.Int, orderId)
+            .query('UPDATE Orders SET ArchivedAt = NULL, UpdatedAt = SYSUTCDATETIME() WHERE Id = @orderId AND ArchivedAt IS NOT NULL; SELECT @@ROWCOUNT AS Affected;');
+        if (!result.recordset[0].Affected) return res.sendStatus(404);
+        res.sendStatus(204);
+    } catch (err) {
+        console.error('[DigitalRO] Error restaurando pedido:', err.message);
+        res.status(500).json({ error: 'No se pudo restaurar el pedido.' });
     }
 });
 

@@ -49,7 +49,7 @@
                 </p>
 
                     <span class="updated">
-                    Última actualización: 29 de septiembre de 2026
+                    Última actualización: 2 de octubre de 2026
                 </span>
             </div>
 
@@ -203,38 +203,26 @@
                         6. Seguridad de la información
                     </h2>
 
-                    <p>
-                        DigitalRO considera la seguridad de la información
-                        como un aspecto importante. En una implementación real
-                        se aplicarían medidas técnicas y organizativas
-                        destinadas a proteger la información de los usuarios.
-                    </p>
+                    <p>El acceso al historial de pedidos y a los comprobantes está restringido al panel administrativo mediante una clave privada del servidor. No se solicitan ni almacenan contraseñas, PIN de Yape ni datos completos de tarjetas.</p>
 
                     <div class="security-grid">
 
                         <div class="security-card">
                             <span>🔒</span>
                             <h3>Protección</h3>
-                            <p>
-                                Protección de la información almacenada.
-                            </p>
+                            <p>El historial y los comprobantes solo se muestran en el panel administrativo protegido.</p>
                         </div>
 
                         <div class="security-card">
                             <span>🛡️</span>
                             <h3>Seguridad</h3>
-                            <p>
-                                Medidas para reducir accesos no autorizados.
-                            </p>
+                            <p>Los importes se recalculan en el servidor al registrar cada pedido.</p>
                         </div>
 
                         <div class="security-card">
                             <span>🔑</span>
                             <h3>Contraseñas</h3>
-                            <p>
-                                Las contraseñas deberían almacenarse
-                                mediante mecanismos seguros.
-                            </p>
+                            <p>El formulario no pide contraseñas ni credenciales bancarias.</p>
                         </div>
 
                     </div>
@@ -247,18 +235,7 @@
                         7. Servicios de terceros
                     </h2>
 
-                    <p>
-                        Una plataforma de comercio digital puede utilizar
-                        servicios externos para determinadas funciones,
-                        como procesamiento de pagos, análisis estadístico,
-                        alojamiento web o envío de correos electrónicos.
-                    </p>
-
-                    <p>
-                        Estos proveedores podrían procesar determinados datos
-                        necesarios para proporcionar sus servicios y estarían
-                        sujetos a sus propias políticas de privacidad.
-                    </p>
+                    <p>Los pedidos y comprobantes se guardan en SQL Server. Si el cliente continúa al chat, WhatsApp procesa los datos que envía por ese servicio conforme a sus propias políticas. El pago actual se coordina por Yape; MercadoPago está pausado para nuevos pedidos.</p>
 
                 </section>
 
@@ -268,16 +245,7 @@
                         8. Derechos del usuario
                     </h2>
 
-                    <p>
-                        En una implementación real, los usuarios podrían
-                        ejercer los derechos que les correspondan respecto
-                        de sus datos personales, de acuerdo con la legislación
-                        aplicable.
-                    </p>
-
-                    <p>
-                        Entre ellos pueden encontrarse:
-                    </p>
+                    <p>Puedes solicitar información, corrección o eliminación de tus datos escribiendo al WhatsApp de atención. Las solicitudes se revisarán conforme a la legislación aplicable y a las obligaciones relacionadas con pedidos.</p>
 
                     <ul>
                         <li>Solicitar información sobre sus datos.</li>
@@ -295,7 +263,7 @@
                         9. Conservación de los datos
                     </h2>
 
-                    <p>Los datos de cliente, pedidos y comprobantes se conservan en SQL Server para gestionar compras, consultas y obligaciones aplicables. El operador debe definir y publicar un plazo concreto de conservación y un procedimiento de eliminación antes de abrir el servicio al público.</p>
+                    <p>Los datos de cliente, pedidos y comprobantes se conservan para gestionar la compra, atender consultas y cumplir las obligaciones aplicables. Cuando ya no sean necesarios para esas finalidades, deben eliminarse o anonimizarse de acuerdo con la normativa aplicable.</p>
 
                 </section>
 
@@ -333,33 +301,14 @@
                             <span>+51 918 544 859</span>
                         </div>
 
-                        <div>
-                            <strong>Responsable comercial</strong>
-                            <span>DigitalRO</span>
-                        </div>
-
-                        <div>
-                            <strong>🎮 Empresa</strong>
-                            <span>DigitalRO</span>
-                        </div>
-
                     </div>
 
                 </section>
 
 
-                <div class="academic-notice">
-
-                    <span>ℹ️</span>
-
-                    <div>
-                        <strong>Información para completar antes de publicar</strong>
-
-                        <p>
-                            Debes completar la razón social o identidad legal del responsable y el plazo concreto de conservación de datos. El comprobante se guarda en la base de datos y su acceso está restringido al panel administrativo.
-                        </p>
-                    </div>
-
+                <div class="info-box">
+                    <strong>Consultas sobre tus datos</strong>
+                    <p>Para solicitar información o corregir tus datos, escribe al WhatsApp de atención. No envíes contraseñas, códigos de Yape ni datos completos de pago.</p>
                 </div>
 
             </article>
