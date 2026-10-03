@@ -74,28 +74,64 @@ const CartUI = (() => {
         });
     }
 
-    function setupDrawer() {
+    function openDrawer() {
         const toggle = document.getElementById('cartToggle');
         const drawer = document.getElementById('cartDrawer');
         const overlay = document.getElementById('cartOverlay');
+        if (!drawer || !overlay) return;
+        drawer.classList.add('open');
+        overlay.classList.add('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeDrawer() {
+        const toggle = document.getElementById('cartToggle');
+        const drawer = document.getElementById('cartDrawer');
+        const overlay = document.getElementById('cartOverlay');
+        if (!drawer || !overlay) return;
+        drawer.classList.remove('open');
+        overlay.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function setupDrawer() {
+        const toggle = document.getElementById('cartToggle');
+        const overlay = document.getElementById('cartOverlay');
         const close = document.getElementById('cartClose');
-        if (!toggle || !drawer || !overlay || !close) return;
+        if (!toggle || !overlay || !close) return;
 
-        const open = () => {
-            drawer.classList.add('open');
-            overlay.classList.add('open');
-            toggle.setAttribute('aria-expanded', 'true');
-        };
-        const closeDrawer = () => {
-            drawer.classList.remove('open');
-            overlay.classList.remove('open');
-            toggle.setAttribute('aria-expanded', 'false');
-        };
-
-        toggle.addEventListener('click', open);
+        toggle.addEventListener('click', openDrawer);
         close.addEventListener('click', closeDrawer);
         overlay.addEventListener('click', closeDrawer);
     }
 
-    return { setProducts, render, setupDrawer };
+    function showToast(product) {
+        const container = document.getElementById('toastContainer');
+        if (!container || !product) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+            <img class="toast-thumb" src="${product.logo}" alt="${product.title}">
+            <div class="toast-content">
+                <strong>¡Agregado al carrito!</strong>
+                <span>${product.title}</span>
+            </div>
+            <button type="button" class="toast-action">Ver carrito</button>
+        `;
+
+        toast.querySelector('.toast-action').addEventListener('click', () => {
+            openDrawer();
+            toast.remove();
+        });
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('toast-out');
+            setTimeout(() => toast.remove(), 250);
+        }, 3200);
+    }
+
+    return { setProducts, render, setupDrawer, openDrawer, closeDrawer, showToast };
 })();

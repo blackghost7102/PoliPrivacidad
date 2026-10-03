@@ -128,6 +128,7 @@ function renderCatalog() {
 
     document.querySelectorAll('.add-to-cart').forEach((btn) => {
         btn.addEventListener('click', () => {
+            const product = PRODUCTS.find((p) => p.id === btn.dataset.id);
             CartStore.addItem(btn.dataset.id, 1);
             btn.textContent = 'Añadido ✓';
             btn.classList.add('added');
@@ -136,6 +137,18 @@ function renderCatalog() {
                 btn.classList.remove('added');
             }, 1200);
             CartUI.render();
+            if (product) CartUI.showToast(product);
+        });
+    });
+}
+
+function setupFAQ() {
+    document.querySelectorAll('.faq-question').forEach((button) => {
+        button.addEventListener('click', () => {
+            const item = button.closest('.faq-item');
+            const isActive = item.classList.contains('active');
+            document.querySelectorAll('.faq-item').forEach((other) => other.classList.remove('active'));
+            if (!isActive) item.classList.add('active');
         });
     });
 }
@@ -179,4 +192,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     CartUI.setupDrawer();
     setupSearch();
     setupMobileNav();
+    setupFAQ();
 });

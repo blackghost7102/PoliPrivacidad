@@ -52,19 +52,21 @@ function renderNotFound() {
     `;
 }
 
-function bindAddToCartButtons(onAdd) {
+function bindAddToCartButtons(allProducts, onAdd) {
     document.querySelectorAll('.add-to-cart').forEach((btn) => {
         if (btn.dataset.cartBound === 'true') return;
         btn.dataset.cartBound = 'true';
         btn.addEventListener('click', () => {
+            const product = allProducts ? allProducts.find((p) => p.id === btn.dataset.id) : null;
             CartStore.addItem(btn.dataset.id, 1);
             btn.textContent = 'Añadido ✓';
             btn.classList.add('added');
             setTimeout(() => {
-                btn.textContent = 'Añadir';
+                btn.textContent = 'Añadir al carrito';
                 btn.classList.remove('added');
             }, 1200);
             CartUI.render();
+            if (product) CartUI.showToast(product);
             if (onAdd) onAdd();
         });
     });
@@ -102,7 +104,7 @@ function renderProduct(product, allProducts) {
         </div>
     `;
 
-    bindAddToCartButtons();
+    bindAddToCartButtons(allProducts);
 
     document.getElementById('buyNowBtn').addEventListener('click', () => {
         CartStore.addItem(product.id, 1);
@@ -110,7 +112,7 @@ function renderProduct(product, allProducts) {
 
     const related = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
     document.getElementById('relatedGrid').innerHTML = related.map(relatedCardHTML).join('');
-    bindAddToCartButtons();
+    bindAddToCartButtons(allProducts);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

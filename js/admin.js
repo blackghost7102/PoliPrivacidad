@@ -132,6 +132,58 @@ function renderOrders() {
     });
 }
 
+function getCustomerOrderCount(email) {
+    if (!email) return 1;
+    const clean = email.toLowerCase().trim();
+    return orders.filter((o) => (o.PayerEmail || '').toLowerCase().trim() === clean).length;
+}
+
+function buildWhatsAppChatUrl(order) {
+    const rawPhone = String(order.PayerPhone || '').replace(/\D/g, '');
+    if (!rawPhone) return '';
+    const customer = [order.PayerName, order.PayerLastName].filter(Boolean).join(' ') || 'Cliente';
+    const itemsText = (order.Items || []).map((i) => `${i.Title} x${i.Quantity}`).join(', ') || 'Productos digitales';
+    const msg = `Hola ${customer}, te saludamos de DigitalRO respecto a tu pedido #${order.Id} (${itemsText}).`;
+    return `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
+}
+
+function exportOrdersToCSV() {
+    const list = filteredOrders();
+    if (list.length === 0) {
+        alert('No hay pedidos visibles para exportar.');
+        return;
+    }
+
+    const headers = ['ID', 'Referencia', 'Cliente', 'Email', 'Telefono', 'Metodo', 'Estado_Pago', 'Estado_Entrega', 'Total_PEN', 'Fecha'];
+    const rows = list.map((o) => {
+        const customer = [o.PayerName, o.PayerLastName].filter(Boolean).join(' ') || '';
+        const date = o.CreatedAt ? new Date(o.CreatedAt).toISOString().replace('T', ' ').slice(0, 19) : '';
+        return [
+            o.Id,
+            `"${(o.ExternalReference || '').replace(/"/g, '""')}"`,
+            `"${customer.replace(/"/g, '""')}"`,
+            `"${(o.PayerEmail || '').replace(/"/g, '""')}"`,
+            `"${(o.PayerPhone || '').replace(/"/g, '""')}"`,
+            `"${(o.PaymentMethod || 'MercadoPago').replace(/"/g, '""')}"`,
+            `"${(o.Status || '').replace(/"/g, '""')}"`,
+            `"${(o.FulfillmentStatus || 'pending').replace(/"/g, '""')}"`,
+            Number(o.Total || 0).toFixed(2),
+            `"${date}"`
+        ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pedidos-digitalro-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 function showOrderDetail(orderId) {
     const order = orders.find((item) => Number(item.Id) === orderId);
     if (!order) return;
@@ -144,6 +196,15 @@ function showOrderDetail(orderId) {
             <strong>${formatCurrency(Number(item.UnitPrice) * Number(item.Quantity))}</strong>
         </div>
     `).join('') : '<p class="admin-muted">No hay artículos asociados.</p>';
+
+    const count = getCustomerOrderCount(order.PayerEmail);
+    const customerBadge = count > 1 ? `Cliente recurrente (${count} pedidos)` : 'Primer pedido';
+    const waChatUrl = buildWhatsAppChatUrl(order);
+    const waChatButton = waChatUrl ? `
+        <a class="admin-primary" style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none; gap:6px; height:36px; padding:0 14px; width:auto; margin-top:10px;" href="${waChatUrl}" target="_blank" rel="noopener">
+            💬 Abrir chat WhatsApp con cliente
+        </a>
+    ` : '';
 
     const isYapeOrder = order.PaymentMethod === 'Yape';
     const reviewControls = isYapeOrder ? `
@@ -172,7 +233,7 @@ function showOrderDetail(orderId) {
 
     document.getElementById('dialogContent').innerHTML = `
         <div class="dialog-meta-grid">
-            <div><span>Cliente ID</span><strong>${escapeHTML(order.CustomerId || 'Histórico')}</strong></div>
+            <div><span>Cliente ID</span><strong>${escapeHTML(order.CustomerId || 'Histórico')} <small style="color:var(--admin-cyan);">(${customerBadge})</small></strong></div>
             <div><span>Cliente</span><strong>${escapeHTML([order.PayerName, order.PayerLastName].filter(Boolean).join(' ') || 'Sin nombre')}</strong></div>
             <div><span>Correo</span><strong>${escapeHTML(order.PayerEmail || 'Sin correo')}</strong></div>
             <div><span>Teléfono</span><strong>${escapeHTML(order.PayerPhone || 'No indicado')}</strong></div>
@@ -182,6 +243,7 @@ function showOrderDetail(orderId) {
             <div><span>Referencia</span><strong>${escapeHTML(order.ExternalReference)}</strong></div>
             <div><span>WhatsApp</span><strong>${escapeHTML(order.PayerPhone || 'No indicado')}</strong></div>
         </div>
+        ${waChatButton}
         <section class="admin-proof-box">
             <div class="proof-heading"><h3>Comprobante Yape</h3><button class="admin-secondary" id="loadOrderProof" type="button">Ver comprobante</button></div>
             <p class="admin-error" id="proofError" role="status"></p>
@@ -256,6 +318,8 @@ document.getElementById('adminLoginForm').addEventListener('submit', async (even
 document.getElementById('orderSearch').addEventListener('input', renderOrders);
 document.getElementById('statusFilter').addEventListener('change', renderOrders);
 document.getElementById('refreshOrders').addEventListener('click', loadOrders);
+const exportCsvBtn = document.getElementById('exportOrdersCsv');
+if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportOrdersToCSV);
 document.getElementById('logoutAdmin').addEventListener('click', () => {
     adminKey = '';
     orders = [];
